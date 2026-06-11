@@ -1,0 +1,14 @@
+{
+  "name": "smart-paint-hardware-store",
+  "version": "1.0.0",
+  "description": "Full-stack AI-powered Paint & Hardware Store",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
