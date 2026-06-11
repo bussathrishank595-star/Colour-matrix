@@ -5,7 +5,8 @@ const Product = require('../models/Product');
 const { sendEmail } = require('../utils/sendEmail');
 const { orderConfirmationTemplate, shopkeeperOrderAlertTemplate } = require('../utils/emailTemplates');
 
-const razorpay = new Razorpay({
+// Lazy init — prevents crash on startup if env vars not yet loaded
+const getRazorpay = () => new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
@@ -53,7 +54,7 @@ exports.createOrder = async (req, res, next) => {
     // Create Razorpay order
     let razorpayOrderId = null;
     if (paymentMethod === 'razorpay') {
-      const rzpOrder = await razorpay.orders.create({
+      const rzpOrder = await getRazorpay().orders.create({
         amount: Math.round(totalAmount * 100), // in paise
         currency: 'INR',
         receipt: `receipt_${Date.now()}`,
