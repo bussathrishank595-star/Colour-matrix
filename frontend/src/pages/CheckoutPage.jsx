@@ -362,13 +362,24 @@ function DeliveryStep({ user, onNext, onBack }) {
 /*  STEP 2 — Payment                                            */
 /* ─────────────────────────────────────────────────────────── */
 function PaymentStep({ items, shippingAddress, total, onBack, onSuccess }) {
-  const [method, setMethod] = useState('razorpay');
+  const [method, setMethod] = useState('upi');
+  const [upiTxnId, setUpiTxnId] = useState('');
   const [placing, setPlacing] = useState(false);
   const { clearCart } = useCartStore();
-  const { user } = useAuthStore();
   const navigate = useNavigate();
 
   const handlePlaceOrder = async () => {
+    if (method === 'upi') {
+      if (!upiTxnId) {
+        toast.error('Please enter your 12-digit UPI Transaction ID (UTR)');
+        return;
+      }
+      if (!/^\d{12}$/.test(upiTxnId)) {
+        toast.error('UPI Transaction ID (UTR) must be exactly 12 digits');
+        return;
+      }
+    }
+
     setPlacing(true);
     try {
       const orderItems = items.map(i => ({
@@ -381,62 +392,16 @@ function PaymentStep({ items, shippingAddress, total, onBack, onSuccess }) {
         orderItems,
         shippingAddress,
         paymentMethod: method,
+        upiTxnId: method === 'upi' ? upiTxnId : undefined,
       });
 
-      if (method === 'razorpay') {
-        // Load Razorpay script
-        const loaded = await loadRazorpay();
-        if (!loaded) { toast.error('Could not load payment gateway. Please try COD.'); setPlacing(false); return; }
-
-        const options = {
-          key: data.razorpayKeyId,
-          amount: Math.round(data.totalAmount * 100),
-          currency: 'INR',
-          name: 'Smart Paint & Hardware Store',
-          description: `Order #${data.order._id?.slice(-8).toUpperCase()}`,
-          order_id: data.razorpayOrderId,
-          prefill: {
-            name: shippingAddress.name,
-            email: shippingAddress.email,
-            contact: shippingAddress.phone,
-          },
-          theme: { color: '#e94560' },
-          handler: async (response) => {
-            try {
-              await api.post('/orders/verify-payment', {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                orderId: data.order._id,
-              });
-              clearCart();
-              toast.success('🎉 Order placed & payment successful!');
-              navigate(`/order-success/${data.order._id}`);
-            } catch {
-              toast.error('Payment verification failed. Contact support.');
-            }
-          },
-          modal: {
-            ondismiss: () => {
-              toast('Payment cancelled. Your order is saved — complete payment from My Orders.', { icon: 'ℹ️' });
-              setPlacing(false);
-            },
-          },
-        };
-
-        const rzp = new window.Razorpay(options);
-        rzp.on('payment.failed', () => {
-          toast.error('Payment failed. Please try again.');
-          setPlacing(false);
-        });
-        rzp.open();
-        setPlacing(false);
+      clearCart();
+      if (method === 'upi') {
+        toast.success('🎉 Order placed! Awaiting payment verification.');
       } else {
-        // Cash on Delivery
-        clearCart();
         toast.success('🎉 Order placed! Pay on delivery.');
-        navigate(`/order-success/${data.order._id}`);
       }
+      navigate(`/order-success/${data.order._id}`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Order failed. Please try again.');
       setPlacing(false);
@@ -445,9 +410,9 @@ function PaymentStep({ items, shippingAddress, total, onBack, onSuccess }) {
 
   const METHODS = [
     {
-      id: 'razorpay',
-      label: 'Pay Online',
-      sub: 'UPI, Cards, Net Banking, Wallets',
+      id: 'upi',
+      label: 'Pay via UPI QR Code',
+      sub: 'GPay, PhonePe, Paytm, BHIM',
       icon: <CreditCard size={20} className="text-blue-500" />,
     },
     {
@@ -457,6 +422,8 @@ function PaymentStep({ items, shippingAddress, total, onBack, onSuccess }) {
       icon: <IndianRupee size={20} className="text-green-500" />,
     },
   ];
+
+  const upiId = import.meta.env.VITE_UPI_ID || 'bussathrishank595@okaxis';
 
   return (
     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
@@ -475,8 +442,8 @@ function PaymentStep({ items, shippingAddress, total, onBack, onSuccess }) {
       </div>
 
       {/* Payment method */}
-      <div className="card p-5">
-        <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Choose Payment Method</p>
+      <div className="card p-5 space-y-4">
+        <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-1">Choose Payment Method</p>
         <div className="space-y-3">
           {METHODS.map(m => (
             <button key={m.id} onClick={() => setMethod(m.id)}
@@ -494,12 +461,66 @@ function PaymentStep({ items, shippingAddress, total, onBack, onSuccess }) {
             </button>
           ))}
         </div>
+
+        {/* UPI Details section */}
+        {method === 'upi' && (
+          <div className="p-4 border border-blue-200 bg-blue-50/10 dark:bg-blue-950/10 rounded-2xl space-y-4">
+            <div className="text-center space-y-3">
+              <p className="text-sm font-bold text-[var(--text-primary)]">
+                Scan QR Code to Pay ₹{total.toLocaleString('en-IN')}
+              </p>
+              
+              {/* Dynamic QR Code from free API */}
+              <div className="w-48 h-48 mx-auto bg-white p-2 rounded-2xl border border-[var(--border)] shadow-md flex items-center justify-center">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                    `upi://pay?pa=${upiId}&pn=Smart%20Paint%20Store&am=${total}&cu=INR`
+                  )}`}
+                  alt="UPI QR Code"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs text-[var(--text-muted)]">UPI ID (tap to copy):</p>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(upiId);
+                    toast.success('UPI ID copied to clipboard!');
+                  }}
+                  className="text-sm font-black text-[var(--brand-primary)] font-mono hover:underline focus:outline-none"
+                >
+                  {upiId}
+                </button>
+              </div>
+            </div>
+
+            <div className="border-t border-[var(--border)] pt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wide">
+                  Enter 12-Digit UPI Transaction ID (UTR No.) *
+                </label>
+                <input
+                  type="text"
+                  maxLength={12}
+                  value={upiTxnId}
+                  onChange={(e) => setUpiTxnId(e.target.value.replace(/\D/g, ''))}
+                  placeholder="e.g. 301234567890"
+                  className="input-field w-full text-center font-mono text-lg tracking-widest font-black"
+                />
+              </div>
+              <p className="text-[10px] text-[var(--text-muted)] leading-relaxed text-center">
+                Please complete the transfer on Google Pay, PhonePe, or Paytm first. Once paid, check your app transaction details, copy the 12-digit UPI Ref/UTR No., and enter it above.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Secure badge */}
-      <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] bg-green-50 border border-green-200 rounded-xl p-3">
+      <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] bg-green-50/50 border border-green-200/50 rounded-xl p-3">
         <Shield size={14} className="text-green-600 flex-shrink-0" />
-        <span>Your payment is <strong className="text-green-700">100% secure & encrypted</strong>. We never store card details.</span>
+        <span>Your transaction is <strong className="text-green-700">secure</strong>. We manually verify all payments before shipping.</span>
       </div>
 
       <div className="flex justify-between mt-4">

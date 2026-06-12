@@ -9,13 +9,12 @@ import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 
 const STATUS_CONFIG = {
-  pending:    { label: 'Pending',     color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: <Clock size={12} /> },
-  confirmed:  { label: 'Confirmed',   color: 'bg-blue-50 text-blue-700 border-blue-200',       icon: <CheckCircle size={12} /> },
-  processing: { label: 'Processing',  color: 'bg-indigo-50 text-indigo-700 border-indigo-200', icon: <Package size={12} /> },
-  shipped:    { label: 'Shipped',     color: 'bg-purple-50 text-purple-700 border-purple-200', icon: <Truck size={12} /> },
-  delivered:  { label: 'Delivered',   color: 'bg-green-50 text-green-700 border-green-200',    icon: <CheckCircle size={12} /> },
-  cancelled:  { label: 'Cancelled',   color: 'bg-red-50 text-red-700 border-red-200',          icon: <XCircle size={12} /> },
-  refunded:   { label: 'Refunded',    color: 'bg-gray-100 text-gray-600 border-gray-200',      icon: <RefreshCw size={12} /> },
+  processing:       { label: 'Processing',  color: 'bg-indigo-50 text-indigo-700 border-indigo-200', icon: <Package size={12} /> },
+  confirmed:        { label: 'Confirmed',   color: 'bg-blue-50 text-blue-700 border-blue-200',       icon: <CheckCircle size={12} /> },
+  shipped:          { label: 'Shipped',     color: 'bg-purple-50 text-purple-700 border-purple-200', icon: <Truck size={12} /> },
+  out_for_delivery: { label: 'Out Delivery', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: <Truck size={12} /> },
+  delivered:        { label: 'Delivered',   color: 'bg-green-50 text-green-700 border-green-200',    icon: <CheckCircle size={12} /> },
+  cancelled:        { label: 'Cancelled',   color: 'bg-red-50 text-red-700 border-red-200',          icon: <XCircle size={12} /> },
 };
 
 function StatusBadge({ status }) {
@@ -32,11 +31,11 @@ function OrderModal({ order, open, onClose, onStatusChange }) {
   const [status, setStatus] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { if (order) setStatus(order.status); }, [order]);
+  useEffect(() => { if (order) setStatus(order.orderStatus || ''); }, [order]);
   if (!open || !order) return null;
 
   const handleStatusSave = async () => {
-    if (status === order.status) { onClose(); return; }
+    if (status === order.orderStatus) { onClose(); return; }
     setSaving(true);
     try {
       await api.put(`/orders/${order._id}/status`, { status });
@@ -60,7 +59,7 @@ function OrderModal({ order, open, onClose, onStatusChange }) {
             <p className="text-xs text-[var(--text-muted)]">{new Date(order.createdAt).toLocaleString('en-IN')}</p>
           </div>
           <div className="flex items-center gap-3">
-            <StatusBadge status={order.status} />
+            <StatusBadge status={order.orderStatus} />
             <button onClick={onClose} className="p-1.5 hover:bg-[var(--surface-2)] rounded-lg transition-colors">
               <X size={17} className="text-[var(--text-muted)]" />
             </button>
@@ -79,16 +78,16 @@ function OrderModal({ order, open, onClose, onStatusChange }) {
             </div>
             <div className="flex items-start gap-2 text-sm"><MapPin size={14} className="text-[var(--brand-primary)] mt-0.5 flex-shrink-0" />
               <span className="text-[var(--text-muted)]">
-                {[addr.street, addr.city, addr.state, addr.pincode].filter(Boolean).join(', ') || 'No address'}
+                {[addr.houseNumber || addr.street, addr.street, addr.area, addr.city, addr.state, addr.pincode].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ') || 'No address'}
               </span>
             </div>
           </div>
 
           {/* Items */}
           <div>
-            <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Items ({order.items?.length || 0})</p>
+            <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide mb-3">Items ({order.orderItems?.length || 0})</p>
             <div className="space-y-2 max-h-52 overflow-y-auto">
-              {(order.items || []).map((item, i) => (
+              {(order.orderItems || []).map((item, i) => (
                 <div key={i} className="flex items-center gap-3 p-3 bg-[var(--surface-2)] rounded-xl">
                   <div className="w-10 h-10 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex-shrink-0 overflow-hidden">
                     {item.product?.images?.[0]?.url
@@ -99,6 +98,7 @@ function OrderModal({ order, open, onClose, onStatusChange }) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{item.product?.name || item.name}</p>
                     <p className="text-xs text-[var(--text-muted)]">Qty: {item.quantity} × ₹{item.price?.toLocaleString('en-IN')}</p>
+                    {item.colorVariant && <p className="text-[10px] text-[var(--brand-primary)] font-bold">Colour: {item.colorVariant}</p>}
                   </div>
                   <p className="text-sm font-bold text-[var(--text-primary)] flex-shrink-0">
                     ₹{(item.quantity * item.price)?.toLocaleString('en-IN')}
@@ -139,11 +139,11 @@ function OrderModal({ order, open, onClose, onStatusChange }) {
             </div>
           </div>
 
-          {/* Payment */}
+          {/* Payment Details */}
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="p-3 bg-[var(--surface-2)] rounded-xl">
-              <p className="text-[var(--text-muted)] mb-0.5">Payment</p>
-              <p className="font-bold text-[var(--text-primary)] capitalize">{order.paymentMethod || 'N/A'}</p>
+              <p className="text-[var(--text-muted)] mb-0.5">Payment Method</p>
+              <p className="font-bold text-[var(--text-primary)] uppercase font-mono">{order.paymentMethod || 'N/A'}</p>
             </div>
             <div className="p-3 bg-[var(--surface-2)] rounded-xl">
               <p className="text-[var(--text-muted)] mb-0.5">Payment Status</p>
@@ -152,6 +152,39 @@ function OrderModal({ order, open, onClose, onStatusChange }) {
               </p>
             </div>
           </div>
+
+          {/* UPI Transaction Details & Action */}
+          {order.paymentMethod === 'upi' && (
+            <div className="p-4 border border-blue-200 bg-blue-50/10 rounded-xl space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-[var(--text-secondary)] font-semibold">UPI Transaction UTR (12-digit):</span>
+                <span className="font-mono font-black text-blue-700 bg-blue-100/50 px-2.5 py-1 rounded-lg select-all">
+                  {order.upiTxnId || 'N/A'}
+                </span>
+              </div>
+              {order.paymentStatus !== 'paid' && (
+                <button
+                  onClick={async () => {
+                    setSaving(true);
+                    try {
+                      await api.put(`/orders/${order._id}/status`, { paymentStatus: 'paid' });
+                      toast.success('UPI Payment approved & order confirmed!');
+                      onStatusChange();
+                      onClose();
+                    } catch {
+                      toast.error('Failed to approve payment');
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={saving}
+                  className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  <CheckCircle size={14} /> Verify & Approve Payment (₹{order.totalAmount?.toLocaleString('en-IN')})
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
@@ -194,9 +227,9 @@ export default function AdminOrdersPage() {
 
   const stats = {
     total: totalOrders,
-    pending: orders.filter(o => o.status === 'pending').length,
-    delivered: orders.filter(o => o.status === 'delivered').length,
-    revenue: orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0),
+    pending: orders.filter(o => o.orderStatus === 'processing').length,
+    delivered: orders.filter(o => o.orderStatus === 'delivered').length,
+    revenue: orders.filter(o => o.orderStatus !== 'cancelled').reduce((s, o) => s + (o.totalAmount || 0), 0),
   };
 
   return (
@@ -216,7 +249,7 @@ export default function AdminOrdersPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Total Orders', val: stats.total, color: 'bg-blue-50 border-blue-200 text-blue-700' },
-          { label: 'Pending', val: stats.pending, color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
+          { label: 'Processing', val: stats.pending, color: 'bg-yellow-50 border-yellow-200 text-yellow-700' },
           { label: 'Delivered', val: stats.delivered, color: 'bg-green-50 border-green-200 text-green-700' },
           { label: 'Revenue', val: `₹${stats.revenue.toLocaleString('en-IN')}`, color: 'bg-purple-50 border-purple-200 text-purple-700' },
         ].map(s => (
@@ -282,7 +315,7 @@ export default function AdminOrdersPage() {
                       <p className="text-xs text-[var(--text-muted)] truncate max-w-[130px]">{o.user?.email}</p>
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--text-muted)]">
-                      {o.items?.length || 0} item{o.items?.length !== 1 ? 's' : ''}
+                      {o.orderItems?.length || 0} item{o.orderItems?.length !== 1 ? 's' : ''}
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-sm font-bold text-[var(--text-primary)]">₹{o.totalAmount?.toLocaleString('en-IN')}</p>
@@ -291,7 +324,7 @@ export default function AdminOrdersPage() {
                       </p>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={o.status} />
+                      <StatusBadge status={o.orderStatus} />
                     </td>
                     <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
                       {new Date(o.createdAt).toLocaleDateString('en-IN')}

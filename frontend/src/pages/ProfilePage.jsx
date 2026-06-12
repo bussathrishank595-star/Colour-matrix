@@ -13,12 +13,12 @@ import toast from 'react-hot-toast';
 
 /* ── Status helpers ───────────────────────────────────────── */
 const STATUS = {
-  pending:    { label: 'Pending',    color: 'text-yellow-600 bg-yellow-50 border-yellow-200', icon: <Clock size={11} /> },
-  confirmed:  { label: 'Confirmed',  color: 'text-blue-600 bg-blue-50 border-blue-200',       icon: <CheckCircle size={11} /> },
-  processing: { label: 'Processing', color: 'text-indigo-600 bg-indigo-50 border-indigo-200', icon: <Package size={11} /> },
-  shipped:    { label: 'Shipped',    color: 'text-purple-600 bg-purple-50 border-purple-200', icon: <Truck size={11} /> },
-  delivered:  { label: 'Delivered',  color: 'text-green-600 bg-green-50 border-green-200',    icon: <CheckCircle size={11} /> },
-  cancelled:  { label: 'Cancelled',  color: 'text-red-600 bg-red-50 border-red-200',          icon: <XCircle size={11} /> },
+  processing:       { label: 'Processing',       color: 'text-indigo-600 bg-indigo-50 border-indigo-200', icon: <Package size={11} /> },
+  confirmed:        { label: 'Confirmed',        color: 'text-blue-600 bg-blue-50 border-blue-200',       icon: <CheckCircle size={11} /> },
+  shipped:          { label: 'Shipped',          color: 'text-purple-600 bg-purple-50 border-purple-200', icon: <Truck size={11} /> },
+  out_for_delivery: { label: 'Out for Delivery', color: 'text-yellow-600 bg-yellow-50 border-yellow-200', icon: <Truck size={11} /> },
+  delivered:        { label: 'Delivered',        color: 'text-green-600 bg-green-50 border-green-200',    icon: <CheckCircle size={11} /> },
+  cancelled:        { label: 'Cancelled',        color: 'text-red-600 bg-red-50 border-red-200',          icon: <XCircle size={11} /> },
 };
 
 function StatusBadge({ status }) {
@@ -196,11 +196,11 @@ function OrdersTab() {
                 <p className="text-sm font-bold text-[var(--text-primary)] font-mono">
                   #{order._id?.slice(-8).toUpperCase()}
                 </p>
-                <StatusBadge status={order.status} />
+                <StatusBadge status={order.orderStatus} />
               </div>
               <p className="text-xs text-[var(--text-muted)] mt-0.5">
                 {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                {' · '}{order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
+                {' · '}{order.orderItems?.length || 0} item{order.orderItems?.length !== 1 ? 's' : ''}
               </p>
             </div>
             <div className="text-right flex-shrink-0">
@@ -219,7 +219,7 @@ function OrdersTab() {
                 exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
                 className="overflow-hidden border-t border-[var(--border)]">
                 <div className="p-4 space-y-3">
-                  {(order.items || []).map((item, j) => (
+                  {(order.orderItems || []).map((item, j) => (
                     <div key={j} className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] overflow-hidden flex-shrink-0">
                         {item.product?.images?.[0]?.url
@@ -230,6 +230,7 @@ function OrdersTab() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{item.product?.name || item.name}</p>
                         <p className="text-xs text-[var(--text-muted)]">Qty: {item.quantity} × ₹{item.price?.toLocaleString('en-IN')}</p>
+                        {item.colorVariant && <p className="text-[10px] text-[var(--brand-primary)] font-bold">Colour: {item.colorVariant}</p>}
                       </div>
                       <p className="text-sm font-bold text-[var(--text-primary)] flex-shrink-0">
                         ₹{(item.quantity * item.price)?.toLocaleString('en-IN')}
@@ -243,11 +244,13 @@ function OrdersTab() {
                       <MapPin size={13} className="text-[var(--brand-primary)] mt-0.5 flex-shrink-0" />
                       <span>
                         Deliver to: {[
+                          order.shippingAddress.houseNumber || order.shippingAddress.street,
                           order.shippingAddress.street,
+                          order.shippingAddress.area,
                           order.shippingAddress.city,
                           order.shippingAddress.state,
                           order.shippingAddress.pincode
-                        ].filter(Boolean).join(', ')}
+                        ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ')}
                       </span>
                     </div>
                   )}
@@ -255,7 +258,8 @@ function OrdersTab() {
                   {/* Payment */}
                   <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]">
                     <span className="text-xs text-[var(--text-muted)] capitalize">
-                      Payment: <strong>{order.paymentMethod || 'N/A'}</strong>
+                      Payment Method: <strong className="uppercase font-mono">{order.paymentMethod || 'N/A'}</strong>
+                      {order.upiTxnId && <span> (UTR: <strong className="font-mono">{order.upiTxnId}</strong>)</span>}
                     </span>
                     <span className={`text-xs font-bold capitalize ${order.paymentStatus === 'paid' ? 'text-green-600' : 'text-orange-500'}`}>
                       {order.paymentStatus || 'Pending'}

@@ -14,10 +14,14 @@ const getRazorpay = () => new Razorpay({
 // ── CREATE ORDER ────────────────────────────────────────
 exports.createOrder = async (req, res, next) => {
   try {
-    const { orderItems, shippingAddress, paymentMethod } = req.body;
+    const { orderItems, shippingAddress, paymentMethod, upiTxnId } = req.body;
 
     if (!orderItems || orderItems.length === 0) {
       return res.status(400).json({ success: false, message: 'No order items provided' });
+    }
+
+    if (paymentMethod === 'upi' && (!upiTxnId || !/^\d{12}$/.test(upiTxnId))) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid 12-digit UPI UTR number' });
     }
 
     // Verify stock and get current prices from DB
@@ -51,7 +55,7 @@ exports.createOrder = async (req, res, next) => {
     const tax = parseFloat((subtotal * 0.18).toFixed(2)); // 18% GST
     const totalAmount = parseFloat((subtotal + shippingCharge + tax).toFixed(2));
 
-    // Create Razorpay order
+    // Create Razorpay order if selected
     let razorpayOrderId = null;
     if (paymentMethod === 'razorpay') {
       const rzpOrder = await getRazorpay().orders.create({
@@ -72,7 +76,36 @@ exports.createOrder = async (req, res, next) => {
       totalAmount,
       paymentMethod,
       razorpayOrderId,
+      upiTxnId,
     });
+
+    // Decrease stock immediately for COD and UPI orders (since they are placed instantly)
+    if (paymentMethod === 'cod' || paymentMethod === 'upi') {
+      for (const item of verifiedItems) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { stockQuantity: -item.quantity, soldCount: item.quantity },
+        });
+      }
+
+      // Send emails immediately for COD/UPI orders
+      const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
+      Promise.all([
+        sendEmail({
+          to: populatedOrder.shippingAddress.email,
+          subject: paymentMethod === 'upi'
+            ? `⏳ Order Placed (Awaiting Payment Verification) #${populatedOrder.invoiceNumber}`
+            : `🎉 Order Confirmed! #${populatedOrder.invoiceNumber}`,
+          html: orderConfirmationTemplate(populatedOrder, populatedOrder.user),
+        }),
+        sendEmail({
+          to: process.env.ADMIN_EMAIL,
+          subject: paymentMethod === 'upi'
+            ? `🔔 New UPI Order Awaiting Verification! ₹${populatedOrder.totalAmount} — #${populatedOrder.invoiceNumber}`
+            : `🔔 New COD Order Received! ₹${populatedOrder.totalAmount} — #${populatedOrder.invoiceNumber}`,
+          html: shopkeeperOrderAlertTemplate(populatedOrder),
+        }),
+      ]).catch((err) => console.error('Email send error:', err.message));
+    }
 
     res.status(201).json({
       success: true,
@@ -226,20 +259,73 @@ exports.getAllOrders = async (req, res, next) => {
 // ── ADMIN: UPDATE ORDER STATUS ──────────────────────────
 exports.updateOrderStatus = async (req, res, next) => {
   try {
-    const { status, note } = req.body;
-    const order = await Order.findById(req.params.id);
+    const { status, paymentStatus, note } = req.body;
+    const order = await Order.findById(req.params.id).populate('user', 'name email');
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
-    order.orderStatus = status;
-    order.statusHistory.push({ status, updatedBy: req.user._id, note });
-    if (status === 'delivered') order.deliveredAt = new Date();
-    if (status === 'cancelled') {
-      order.cancelledAt = new Date();
-      order.cancellationReason = note;
+    const previousStatus = order.orderStatus;
+    const previousPaymentStatus = order.paymentStatus;
+
+    if (status) {
+      order.orderStatus = status;
+      order.statusHistory.push({
+        status,
+        updatedBy: req.user._id,
+        note: note || `Order status updated to ${status}`,
+      });
+
+      if (status === 'delivered') {
+        order.deliveredAt = new Date();
+      }
+
+      if (status === 'cancelled' && previousStatus !== 'cancelled') {
+        order.cancelledAt = new Date();
+        order.cancellationReason = note || 'Cancelled by admin';
+
+        // Restore stock if the order was previously active/confirmed (i.e. stock was decreased)
+        // Stock is decreased immediately for COD and UPI orders on creation,
+        // and for Razorpay orders on successful payment.
+        const wasStockDecreased = order.paymentMethod === 'cod' ||
+                                  order.paymentMethod === 'upi' ||
+                                  previousPaymentStatus === 'paid';
+
+        if (wasStockDecreased) {
+          for (const item of order.orderItems) {
+            await Product.findByIdAndUpdate(item.product, {
+              $inc: { stockQuantity: item.quantity, soldCount: -item.quantity },
+            });
+          }
+        }
+      }
     }
+
+    if (paymentStatus) {
+      order.paymentStatus = paymentStatus;
+      if (paymentStatus === 'paid' && previousPaymentStatus !== 'paid') {
+        order.paidAt = new Date();
+
+        // If it was processing/pending verification and is now paid, confirm the order status as well
+        if (order.orderStatus === 'processing') {
+          order.orderStatus = 'confirmed';
+          order.statusHistory.push({
+            status: 'confirmed',
+            updatedBy: req.user._id,
+            note: 'Payment verified manually by admin',
+          });
+        }
+
+        // Trigger payment confirmation email
+        sendEmail({
+          to: order.shippingAddress.email,
+          subject: `🎉 Payment Verified & Confirmed! #${order.invoiceNumber}`,
+          html: orderConfirmationTemplate(order, order.user),
+        }).catch((err) => console.error('Email send error:', err.message));
+      }
+    }
+
     await order.save();
 
-    res.status(200).json({ success: true, message: 'Order status updated', order });
+    res.status(200).json({ success: true, message: 'Order updated successfully', order });
   } catch (error) {
     next(error);
   }
