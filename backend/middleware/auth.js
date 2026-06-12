@@ -17,7 +17,7 @@ exports.protect = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Not authorized, please login' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'SmartPaintSecretKey2024Bachu');
     const user = await User.findById(decoded.id).select('-password');
 
     if (!user) {
@@ -61,7 +61,7 @@ exports.optionalAuth = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
     }
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'SmartPaintSecretKey2024Bachu');
       req.user = await User.findById(decoded.id).select('-password');
     }
     next();

@@ -80,8 +80,8 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
 
 // Generate JWT
 userSchema.methods.getJWTToken = function () {
-  return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
+  return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET || 'SmartPaintSecretKey2024Bachu', {
+    expiresIn: process.env.JWT_EXPIRE || '7d',
   });
 };
 
