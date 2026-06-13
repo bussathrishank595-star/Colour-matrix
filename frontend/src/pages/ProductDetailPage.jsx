@@ -296,7 +296,7 @@ export default function ProductDetailPage() {
               <span className="text-[var(--text-muted)] text-sm">
                 ({product.numReviews} {product.numReviews === 1 ? 'review' : 'reviews'})
               </span>
-              <span className={`ml-auto text-sm font-semibold ${product.stockQuantity > 0 ? 'text-green-500' : 'text-red-500'}`}>
+              <span className={`ml-auto text-sm font-semibold ${product.stockQuantity > 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
                 {product.stockQuantity > 0 ? `✅ In Stock (${product.stockQuantity})` : '❌ Out of Stock'}
               </span>
             </div>
@@ -311,7 +311,7 @@ export default function ProductDetailPage() {
                   <span className="text-xl text-[var(--text-muted)] line-through mb-1">
                     ₹{product.price.toFixed(2)}
                   </span>
-                  <span className="bg-green-100 text-green-700 text-sm font-bold px-3 py-1 rounded-full mb-1">
+                  <span className="bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400 text-sm font-bold px-3 py-1 rounded-full mb-1">
                     {discountPct}% OFF
                   </span>
                 </>
@@ -378,7 +378,7 @@ export default function ProductDetailPage() {
                 onClick={handleWishlist}
                 className={`p-3.5 border-2 rounded-xl transition-all ${
                   wishlisted
-                    ? 'border-red-500 bg-red-50 text-red-500'
+                    ? 'border-red-500 bg-red-500/10 text-red-500'
                     : 'border-[var(--border)] hover:border-red-400 hover:text-red-500'
                 }`}
                 id="product-wishlist"

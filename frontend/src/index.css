@@ -2,6 +2,13 @@
 
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+select option {
+  background-color: var(--surface);
+  color: var(--text-primary);
+}
+
 
 /* ─── CSS Variables / Design Tokens ─────────────────────── */
 :root {

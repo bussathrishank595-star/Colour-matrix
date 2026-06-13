@@ -65,7 +65,7 @@ function WishlistCard({ product, onRemove, onAddToCart }) {
         <button
           onClick={handleRemove}
           disabled={removing}
-          className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-red-50 hover:text-red-500 transition-colors"
+          className="absolute top-3 right-3 w-8 h-8 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-red-500/10 hover:text-red-500 transition-colors"
           title="Remove from wishlist"
         >
           {removing
@@ -268,7 +268,7 @@ export default function WishlistPage() {
             </button>
             <button
               onClick={handleClearAll}
-              className="flex items-center gap-2 px-4 py-2.5 border border-red-200 text-red-500 rounded-xl font-bold text-sm hover:bg-red-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 border border-red-200 dark:border-red-900/30 text-red-500 rounded-xl font-bold text-sm hover:bg-red-500/10 transition-colors"
             >
               <Trash2 size={16} /> Clear All
             </button>

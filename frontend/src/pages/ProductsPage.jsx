@@ -91,7 +91,7 @@ function ProductCard({ product }) {
             ))}
           </div>
           <span className="text-xs text-[var(--text-muted)]">({product.numReviews})</span>
-          <span className={`ml-auto text-xs font-medium ${product.stockQuantity > 0 ? 'text-green-600' : 'text-red-500'}`}>
+          <span className={`ml-auto text-xs font-medium ${product.stockQuantity > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
             {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
           </span>
         </div>
@@ -284,7 +284,7 @@ export default function ProductsPage() {
               <div className="flex items-center gap-3 mb-6 p-3 bg-[var(--surface-2)] rounded-xl">
                 <Search size={18} className="text-[var(--brand-primary)]" />
                 <span className="text-sm text-[var(--text-secondary)]">Search: <strong className="text-[var(--text-primary)]">{search}</strong></span>
-                <button onClick={() => updateParam('search', '')} className="ml-auto text-gray-400 hover:text-gray-600">
+                <button onClick={() => updateParam('search', '')} className="ml-auto text-gray-400 hover:text-[var(--text-primary)]">
                   <X size={16} />
                 </button>
               </div>

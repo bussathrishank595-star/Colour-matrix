@@ -44,9 +44,9 @@ export default function ForgotPasswordPage() {
 
           {sent ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-center gap-3 p-4 bg-green-50 border border-green-200 rounded-2xl">
-                <CheckCircle size={22} className="text-green-600 flex-shrink-0" />
-                <p className="text-sm text-green-700 font-semibold">
+              <div className="flex items-center justify-center gap-3 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30 rounded-2xl">
+                <CheckCircle size={22} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+                <p className="text-sm text-green-700 dark:text-green-400 font-semibold">
                   Check your inbox and click the reset link.
                 </p>
               </div>

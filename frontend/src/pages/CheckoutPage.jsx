@@ -464,7 +464,7 @@ function PaymentStep({ items, shippingAddress, total, onBack, onSuccess }) {
 
         {/* UPI Details section */}
         {method === 'upi' && (
-          <div className="p-4 border border-blue-200 bg-blue-50/10 dark:bg-blue-950/10 rounded-2xl space-y-4">
+          <div className="p-4 border border-blue-200 dark:border-blue-900/30 bg-blue-50/10 dark:bg-blue-950/10 rounded-2xl space-y-4">
             <div className="text-center space-y-3">
               <p className="text-sm font-bold text-[var(--text-primary)]">
                 Scan QR Code to Pay ₹{total.toLocaleString('en-IN')}
@@ -518,9 +518,9 @@ function PaymentStep({ items, shippingAddress, total, onBack, onSuccess }) {
       </div>
 
       {/* Secure badge */}
-      <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] bg-green-50/50 border border-green-200/50 rounded-xl p-3">
-        <Shield size={14} className="text-green-600 flex-shrink-0" />
-        <span>Your transaction is <strong className="text-green-700">secure</strong>. We manually verify all payments before shipping.</span>
+      <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] dark:text-green-400 bg-green-50/50 dark:bg-green-950/20 border border-green-200/50 dark:border-green-900/30 rounded-xl p-3">
+        <Shield size={14} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+        <span>Your transaction is <strong className="text-green-700 dark:text-green-300">secure</strong>. We manually verify all payments before shipping.</span>
       </div>
 
       <div className="flex justify-between mt-4">

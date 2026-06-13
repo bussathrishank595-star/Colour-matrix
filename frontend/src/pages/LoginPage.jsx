@@ -138,7 +138,7 @@ export default function LoginPage() {
           </p>
 
           {/* Admin hint (subtle, for shopkeeper) */}
-          <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-xl mb-6 text-sm text-blue-700">
+          <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 rounded-xl mb-6 text-sm text-blue-700 dark:text-blue-400">
             <ShieldCheck size={16} className="flex-shrink-0" />
             <span>Shopkeeper? Login with your admin credentials to access the dashboard.</span>
           </div>

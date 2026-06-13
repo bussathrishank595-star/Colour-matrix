@@ -400,7 +400,7 @@ function AddressTab({ user }) {
                 )}
               </div>
               <button onClick={() => handleDelete(addr._id)}
-                className="p-2 hover:bg-red-50 text-red-400 rounded-lg transition-colors flex-shrink-0">
+                className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors flex-shrink-0">
                 <Trash2 size={15} />
               </button>
             </motion.div>
@@ -563,7 +563,7 @@ export default function ProfilePage() {
 
               <div className="pt-1 border-t border-[var(--border)] mt-1">
                 <button onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors">
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-500/10 transition-colors">
                   <LogOut size={16} /> Sign Out
                 </button>
               </div>
