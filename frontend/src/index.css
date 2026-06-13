@@ -178,6 +178,11 @@ img, video { max-width: 100%; display: block; }
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   outline: none;
 }
+.input-field.pl-9 { padding-left: 2.25rem; }
+.input-field.pl-10 { padding-left: 2.5rem; }
+.input-field.pl-11 { padding-left: 2.75rem; }
+.input-field.pr-11 { padding-right: 2.75rem; }
+.input-field.pr-12 { padding-right: 3rem; }
 .input-field:focus {
   border-color: #e94560;
   box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.15);
